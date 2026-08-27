@@ -1,26 +1,10 @@
 import { createServer as createViteServer } from 'vite';
-import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { resolve } from 'node:path';
+import { getControlStatus, queueContinueAction, saveCurrentTask } from './control-service.mjs';
 
 // This single server hosts both the React app and its local API.
 // Keep it separate from CleanFlow's development port.
 const port = 5174;
-const docs = {
-  currentTask: resolve('docs/CURRENT_TASK.md'),
-  status: resolve('docs/STATUS.md'),
-  actionQueue: resolve('docs/ACTION_QUEUE.json'),
-};
-
-async function readActionQueue() {
-  try {
-    return JSON.parse(await readFile(docs.actionQueue, 'utf8'));
-  } catch (error) {
-    if (error.code === 'ENOENT') return null;
-    throw error;
-  }
-}
-
 async function readJsonBody(request) {
   let body = '';
   for await (const chunk of request) body += chunk;
@@ -32,11 +16,7 @@ const vite = await createViteServer({ server: { middlewareMode: true, hmr: false
 const server = createServer(async (request, response) => {
   if (request.url === '/api/docs') {
     try {
-      const [currentTask, status, actionQueue] = await Promise.all([
-        readFile(docs.currentTask, 'utf8'),
-        readFile(docs.status, 'utf8'),
-        readActionQueue(),
-      ]);
+      const { currentTask, status, actionQueue } = await getControlStatus();
       response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       response.end(JSON.stringify({ currentTask, status, actionQueue }));
     } catch (error) {
@@ -48,14 +28,8 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.url === '/api/actions/continue' && request.method === 'POST') {
-    const actionQueue = {
-      action: 'continue',
-      taskFile: 'docs/CURRENT_TASK.md',
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-    };
     try {
-      await writeFile(docs.actionQueue, `${JSON.stringify(actionQueue, null, 2)}\n`);
+      const actionQueue = await queueContinueAction();
       response.writeHead(201, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       response.end(JSON.stringify(actionQueue));
     } catch (error) {
@@ -69,10 +43,9 @@ const server = createServer(async (request, response) => {
   if (request.url === '/api/task' && request.method === 'POST') {
     try {
       const { content } = await readJsonBody(request);
-      if (typeof content !== 'string') throw new Error('Task content must be text.');
-      await writeFile(docs.currentTask, content);
+      const currentTask = await saveCurrentTask(content);
       response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      response.end(JSON.stringify({ currentTask: content }));
+      response.end(JSON.stringify({ currentTask }));
     } catch (error) {
       response.writeHead(400, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ error: error.message || 'Could not save the current task.' }));

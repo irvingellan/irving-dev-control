@@ -1,1 +1,1 @@
-Inspect this repository and list exactly two improvements to the task editor. Do not modify files.
+Inspect Irving Dev Control and report its current architecture. Do not modify files.

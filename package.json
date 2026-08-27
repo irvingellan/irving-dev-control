@@ -1,19 +1,21 @@
 {
   "name": "irving-dev-control",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node dev.mjs",
     "bridge": "node bridge-worker.mjs",
+    "mcp": "node mcp-server.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
     "react": "latest",
-    "react-dom": "latest"
-  },
-  "devDependencies": {}
+    "react-dom": "latest",
+    "vite": "latest",
+    "zod": "^4.4.3"
+  }
 }
