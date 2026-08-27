@@ -73,7 +73,7 @@ export default function App() {
     <main className="shell">
       <header>
         <div>
-          <p className="eyebrow">Local prototype · v0.3</p>
+          <p className="eyebrow">Local prototype · v0.4</p>
           <h1>Irving Dev Control</h1>
           <p className="subtitle">A quiet place to see what matters and choose the next development action.</p>
         </div>
