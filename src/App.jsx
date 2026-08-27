@@ -180,6 +180,146 @@ export default function App() {
           <p>Filesystem monitoring will be added in a later version.</p>
         </aside>
       </div>
+
+      <CodexBridgeTest />
     </main>
   );
 }
+
+// ── Codex Bridge Test section (temporary, for integration validation) ──
+
+function CodexBridgeTest() {
+  const [prompt, setPrompt] = useState('');
+  const [continuePrompt, setContinuePrompt] = useState('');
+  const [jobId, setJobId] = useState('');
+  const [threadId, setThreadId] = useState('');
+  const [snapshot, setSnapshot] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [bridgeMessage, setBridgeMessage] = useState('Ready. Make sure codex-from-chatgpt is running on port 8787.');
+
+  async function handleStart() {
+    if (!prompt.trim()) { setBridgeMessage('Enter a prompt before starting.'); return; }
+    setBusy(true);
+    setBridgeMessage('Starting Codex job…');
+    try {
+      const response = await fetch('/api/codex/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace: '/Users/irvingellan/Documents/ChatGPT/irving-dev-control', prompt: prompt.trim() }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Start failed');
+      setJobId(result.job_id || '');
+      setThreadId(result.thread_id || '');
+      setSnapshot(result);
+      setBridgeMessage(`Job started: ${result.job_id} (thread: ${result.thread_id})`);
+    } catch (error) {
+      setBridgeMessage(`Start failed: ${error.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRefresh() {
+    if (!jobId) { setBridgeMessage('No job ID to refresh.'); return; }
+    setBusy(true);
+    setBridgeMessage('Refreshing job…');
+    try {
+      const response = await fetch(`/api/codex/jobs/${encodeURIComponent(jobId)}?detail=standard`);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Get failed');
+      setSnapshot(result);
+      setBridgeMessage(`Job ${jobId}: ${result.status}${result.activity ? ` — ${result.activity}` : ''}`);
+    } catch (error) {
+      setBridgeMessage(`Refresh failed: ${error.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleContinue() {
+    if (!jobId) { setBridgeMessage('No job ID to continue.'); return; }
+    if (!continuePrompt.trim()) { setBridgeMessage('Enter a continue prompt.'); return; }
+    setBusy(true);
+    setBridgeMessage('Continuing job…');
+    try {
+      const response = await fetch(`/api/codex/jobs/${encodeURIComponent(jobId)}/continue`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: continuePrompt.trim() }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Continue failed');
+      setSnapshot(result);
+      const newThread = result.thread_id || threadId;
+      const reused = newThread === threadId ? '✓ same thread reused' : '⚠ new thread';
+      setBridgeMessage(`Continue sent (${reused}). Thread: ${newThread}`);
+    } catch (error) {
+      setBridgeMessage(`Continue failed: ${error.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card" style={{ marginTop: 24, padding: 22, gridColumn: 'span 2' }}>
+      <div className="card-heading">
+        <div>
+          <p className="eyebrow">Integration test · codex-from-chatgpt</p>
+          <h2>Codex Bridge Test</h2>
+        </div>
+        <code>127.0.0.1:8787/mcp</code>
+      </div>
+
+      <p style={{ color: '#9fb2ca', fontSize: '.9rem', margin: '8px 0 16px' }}>{bridgeMessage}</p>
+
+      {/* Start job */}
+      <label style={{ display: 'block', color: '#aebdd1', fontSize: '.82rem', marginBottom: 4 }}>Start prompt</label>
+      <textarea
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        disabled={busy}
+        placeholder="Describe a read-only task for Codex…"
+        style={{ width: '100%', minHeight: 80, resize: 'vertical', border: '1px solid #334b6d', borderRadius: 9, padding: 12, color: '#e8edf7', background: '#101b2c', font: '.9rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace', marginBottom: 8 }}
+      />
+      <button onClick={handleStart} disabled={busy} style={{ marginRight: 8 }}>{busy ? 'Working…' : 'Start Job'}</button>
+      <button onClick={handleRefresh} disabled={busy || !jobId}>Refresh Job</button>
+
+      {/* Job ID display */}
+      {jobId && (
+        <div style={{ margin: '16px 0 8px', padding: '10px 14px', background: '#101b2c', borderRadius: 9, border: '1px solid #334b6d' }}>
+          <span style={{ color: '#77a8f7', fontSize: '.74rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Job ID</span>
+          <pre style={{ margin: '4px 0 0', color: '#c8d3e4', fontSize: '.85rem' }}>{jobId}</pre>
+          {threadId && <>
+            <span style={{ color: '#77a8f7', fontSize: '.74rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Thread ID</span>
+            <pre style={{ margin: '4px 0 0', color: '#c8d3e4', fontSize: '.85rem' }}>{threadId}</pre>
+          </>}
+        </div>
+      )}
+
+      {/* Continue job */}
+      {jobId && (
+        <>
+          <label style={{ display: 'block', color: '#aebdd1', fontSize: '.82rem', margin: '12px 0 4px' }}>Continue prompt (same thread)</label>
+          <textarea
+            value={continuePrompt}
+            onChange={(e) => setContinuePrompt(e.target.value)}
+            disabled={busy}
+            placeholder="Follow-up instruction for the same Codex thread…"
+            style={{ width: '100%', minHeight: 60, resize: 'vertical', border: '1px solid #334b6d', borderRadius: 9, padding: 12, color: '#e8edf7', background: '#101b2c', font: '.9rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace', marginBottom: 8 }}
+          />
+          <button onClick={handleContinue} disabled={busy}>{busy ? 'Working…' : 'Continue Job'}</button>
+        </>
+      )}
+
+      {/* Job snapshot */}
+      {snapshot && (
+        <div style={{ marginTop: 16 }}>
+          <span style={{ color: '#77a8f7', fontSize: '.74rem', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Job Snapshot</span>
+          <pre style={{ margin: '4px 0 0', color: '#c8d3e4', fontSize: '.85rem', maxHeight: 400, overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{JSON.stringify(snapshot, null, 2)}</pre>
+        </div>
+      )}
+    </section>
+  );
+}
+
