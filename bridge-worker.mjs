@@ -2,9 +2,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { execFile, spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { CODEX_CONTINUE_PROMPT } from './bridge-config.mjs';
+import { buildCodexPrompt } from './bridge-config.mjs';
 
 const actionQueuePath = resolve('docs/ACTION_QUEUE.json');
+const currentTaskPath = resolve('docs/CURRENT_TASK.md');
 const statusPath = resolve('docs/STATUS.md');
 const projectRoot = resolve('.');
 const execFileAsync = promisify(execFile);
@@ -17,7 +18,7 @@ async function gitStatus() {
   return stdout;
 }
 
-function runCodex() {
+function runCodex(prompt) {
   return new Promise((resolveRun, rejectRun) => {
     const codex = spawn('codex', [
       '--sandbox', 'read-only',
@@ -25,7 +26,7 @@ function runCodex() {
       'exec',
       '--ephemeral',
       '--color', 'never',
-      CODEX_CONTINUE_PROMPT,
+      prompt,
     ], { cwd: projectRoot, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
@@ -63,11 +64,15 @@ async function processPendingAction() {
     await writeJson(actionQueuePath, processingAction);
     console.log('Bridge worker: continue action processing');
 
+    // Read the task now, rather than using a value captured when the action was queued.
+    const currentTask = await readFile(currentTaskPath, 'utf8');
+    if (!currentTask.trim()) throw new Error('CURRENT_TASK.md is empty.');
+
     // The official Codex CLI runs in an ephemeral, read-only sandbox. Snapshot the
     // working tree after this worker's own state write, then reject any Codex run
     // that changes it.
     const statusBeforeCodex = await gitStatus();
-    const codexResult = await runCodex();
+    const codexResult = await runCodex(buildCodexPrompt(currentTask));
     const statusAfterCodex = await gitStatus();
     if (statusAfterCodex !== statusBeforeCodex) {
       throw new Error('Codex changed the working tree despite the read-only action.');

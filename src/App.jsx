@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 
 const actions = ['Continue', 'Run Tests', 'Review Changes', 'Next Step'];
 
-function DocumentCard({ title, filename, content, loading }) {
+function DocumentCard({ title, filename, content, loading, label = 'Project document' }) {
   return (
     <section className="card document-card">
       <div className="card-heading">
         <div>
-          <p className="eyebrow">Project document</p>
+          <p className="eyebrow">{label}</p>
           <h2>{title}</h2>
         </div>
         <code>{filename}</code>
@@ -73,7 +73,7 @@ export default function App() {
     <main className="shell">
       <header>
         <div>
-          <p className="eyebrow">Local prototype · v0.4</p>
+          <p className="eyebrow">Local prototype · v0.5</p>
           <h1>Irving Dev Control</h1>
           <p className="subtitle">A quiet place to see what matters and choose the next development action.</p>
         </div>
@@ -88,7 +88,7 @@ export default function App() {
       <p className="action-note" role="status">{message}</p>
 
       <div className="content-grid">
-        <DocumentCard title="Current Task" filename="docs/CURRENT_TASK.md" content={docs.currentTask} loading={loading} />
+        <DocumentCard title="Current Task" filename="docs/CURRENT_TASK.md" content={docs.currentTask} loading={loading} label="Read-only Codex task" />
         <DocumentCard title="Status" filename="docs/STATUS.md" content={docs.status} loading={loading} />
         <section className="card pending-action">
           <div className="card-heading">

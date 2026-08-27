@@ -1,12 +1,12 @@
 # Irving Dev Control
 
-A deliberately small, local control-panel prototype for a future ChatGPT/Codex development workflow. Version 0.4 has one read-only local Codex action.
+A deliberately small, local control-panel prototype for a future ChatGPT/Codex development workflow. Version 0.5 has one read-only local Codex action.
 
 ## What it does
 
 - Displays `docs/CURRENT_TASK.md` and `docs/STATUS.md` in the browser.
 - Refresh reloads those files from the local project.
-- Continue writes a pending local action to `docs/ACTION_QUEUE.json`. The local bridge worker invokes the installed Codex CLI in a read-only sandbox, then records Codex's development-status response in `docs/STATUS.md`.
+- Continue references `docs/CURRENT_TASK.md` in a pending queue action. At execution time, the bridge worker reads that file, builds a read-only Codex prompt, and records Codex's response in `docs/STATUS.md`.
 - A failed Codex run is recorded as `failed` with its useful error text in the queue and status document.
 - The dashboard checks local documents every second, so bridge status changes appear without a manual refresh.
 - Run Tests, Review Changes, and Next Step are local placeholders that record the latest selected action in browser storage.

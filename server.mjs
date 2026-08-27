@@ -44,6 +44,7 @@ const server = createServer(async (request, response) => {
   if (request.url === '/api/actions/continue' && request.method === 'POST') {
     const actionQueue = {
       action: 'continue',
+      taskFile: 'docs/CURRENT_TASK.md',
       createdAt: new Date().toISOString(),
       status: 'pending',
     };
