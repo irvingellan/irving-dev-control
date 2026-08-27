@@ -21,6 +21,12 @@ async function readActionQueue() {
   }
 }
 
+async function readJsonBody(request) {
+  let body = '';
+  for await (const chunk of request) body += chunk;
+  return JSON.parse(body);
+}
+
 const vite = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: 'spa' });
 
 const server = createServer(async (request, response) => {
@@ -56,6 +62,20 @@ const server = createServer(async (request, response) => {
       response.writeHead(500, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ error: 'Could not queue the continue action.' }));
       console.error(error);
+    }
+    return;
+  }
+
+  if (request.url === '/api/task' && request.method === 'POST') {
+    try {
+      const { content } = await readJsonBody(request);
+      if (typeof content !== 'string') throw new Error('Task content must be text.');
+      await writeFile(docs.currentTask, content);
+      response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      response.end(JSON.stringify({ currentTask: content }));
+    } catch (error) {
+      response.writeHead(400, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: error.message || 'Could not save the current task.' }));
     }
     return;
   }

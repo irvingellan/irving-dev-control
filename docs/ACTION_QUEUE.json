@@ -1,9 +1,9 @@
 {
   "action": "continue",
   "taskFile": "docs/CURRENT_TASK.md",
-  "createdAt": "2026-08-27T03:58:05.913Z",
+  "createdAt": "2026-08-27T04:24:19.096Z",
   "status": "completed",
-  "startedAt": "2026-08-27T03:58:06.079Z",
-  "completedAt": "2026-08-27T03:58:49.074Z",
-  "codexResult": "1. Make the action queue durable and concurrency-safe. A single JSON file is overwritten for every Continue request, so requests can be lost; a worker crash can also leave an action permanently `processing`. Use uniquely identified jobs, atomic writes/locking (or SQLite), and recovery/timeouts. [server.mjs](/Users/irvingellan/Documents/ChatGPT/irving-dev-control/server.mjs:44) [bridge-worker.mjs](/Users/irvingellan/Documents/ChatGPT/irving-dev-control/bridge-worker.mjs:60)\n\n2. Secure the local control endpoint. The server does not explicitly bind to loopback and `POST /api/actions/continue` has no origin/authentication protection, yet it launches Codex. Bind to `127.0.0.1` (or require explicit LAN opt-in) and add origin/token validation. [server.mjs](/Users/irvingellan/Documents/ChatGPT/irving-dev-control/server.mjs:26) [server.mjs](/Users/irvingellan/Documents/ChatGPT/irving-dev-control/server.mjs:66)\n\n3. Add automated verification for the bridge path. There are no test, lint, or CI scripts, despite the CLI process, git-state guard, and queue transitions being the application’s critical behavior. Add mocked-Codex integration tests for success, failure, timeout, concurrent requests, and worker restart; pin dependencies rather than `latest`. [bridge-worker.mjs](/Users/irvingellan/Documents/ChatGPT/irving-dev-control/bridge-worker.mjs:21) [package.json](/Users/irvingellan/Documents/ChatGPT/irving-dev-control/package.json:6)"
+  "startedAt": "2026-08-27T04:24:19.322Z",
+  "completedAt": "2026-08-27T04:24:37.736Z",
+  "codexResult": "1. Add unsaved-draft and conflict handling: indicate dirty state, provide Reset/Compare controls, and prevent saves from overwriting a newer polled version of `CURRENT_TASK.md`.\n\n2. Replace “Read-only Codex task” with task-composition guidance: add scope/constraint validation and preview the exact task that will be saved and queued."
 }

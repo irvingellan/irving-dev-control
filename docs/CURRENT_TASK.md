@@ -1,1 +1,1 @@
-Inspect this repository and list the three most important technical improvements. Do not modify files.
+Inspect this repository and list exactly two improvements to the task editor. Do not modify files.
